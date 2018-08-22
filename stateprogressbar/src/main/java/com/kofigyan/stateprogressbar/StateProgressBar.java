@@ -3,6 +3,7 @@ package com.kofigyan.stateprogressbar;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -281,6 +282,9 @@ public class StateProgressBar extends View {
 
     }
 
+    private Paint progressBarPaint;
+    private Paint bacgroundPaint;
+
     private void initializePainters() {
 
         mBackgroundPaint = setPaintAttributes(mStateLineThickness, mBackgroundColor);
@@ -293,6 +297,30 @@ public class StateProgressBar extends View {
         mCurrentStateDescriptionPaint = setPaintAttributes(mStateDescriptionSize, mCurrentStateDescriptionColor, mCustomStateDescriptionTypeface != null ? mCustomStateDescriptionTypeface : mDefaultTypefaceBold);
 
         mStateDescriptionPaint = setPaintAttributes(mStateDescriptionSize, mStateDescriptionColor, mCustomStateDescriptionTypeface != null ? mCustomStateDescriptionTypeface : mDefaultTypefaceBold);
+
+        //
+        progressBarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        progressBarPaint.setStyle(Paint.Style.FILL);
+        progressBarPaint.setColor(mStateNumberForegroundColor);
+        progressBarPaint.setStyle(Paint.Style.STROKE);
+        //stroke width -- mStateLineThickness
+        progressBarPaint.setStrokeWidth(3 * getResources().getDisplayMetrics().density);
+//        if(roundedCorners){
+        progressBarPaint.setStrokeCap(Paint.Cap.ROUND);
+//        }else{
+//            progressBarPaint.setStrokeCap(Paint.Cap.BUTT);
+//        }
+        String pc = String.format("#%06X", (0xFFFFFF & mStateNumberForegroundColor));
+        progressBarPaint.setColor(Color.parseColor(pc));
+
+        bacgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bacgroundPaint.setStyle(Paint.Style.FILL);
+        bacgroundPaint.setColor(mStateNumberBackgroundColor);
+        bacgroundPaint.setStyle(Paint.Style.STROKE);
+        bacgroundPaint.setStrokeWidth(3 * getResources().getDisplayMetrics().density);
+        bacgroundPaint.setStrokeCap(Paint.Cap.SQUARE);
+        String bc = String.format("#%06X", (0xFFFFFF & mStateNumberBackgroundColor));
+        bacgroundPaint.setColor(Color.parseColor(bc));
 
     }
 
@@ -710,7 +738,6 @@ public class StateProgressBar extends View {
         }
 
     }
-
 
     private void drawCircles(Canvas canvas, Paint paint, int startIndex, int endIndex) {
         for (int i = startIndex; i < endIndex; i++) {
