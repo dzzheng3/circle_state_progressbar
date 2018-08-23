@@ -1,18 +1,24 @@
 package com.kofigyan.stateprogressbar;
 
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.content.ContextCompat;
+import android.text.TextPaint;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.Scroller;
 
 import com.kofigyan.stateprogressbar.components.StateItem;
@@ -25,13 +31,31 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-
-/**
- * Created by Kofi Gyan on 4/19/2016.
- */
-
 public class StateProgressBar extends View {
+    private final String TAG = "hahaha";
+    private Paint progressBarPaint;
+    private Paint bacgroundPaint;
+    private Paint textPaint;
 
+    private float mRadius;
+    private RectF mArcBounds = new RectF();
+    private RectF mArcBounds1 = new RectF();
+
+    float drawUpto = 0;
+    private int progressColor;
+    private int backgroundColor;
+    private float strokeWidth;
+    private float backgroundWidth;
+    private boolean roundedCorners;
+    private float maxValue;
+
+    private int progressTextColor = Color.BLACK;
+    private float textSize = 18;
+    private String text = "";
+    private String suffix = "";
+    private String prefix = "";
+
+    int defStyleAttr;
 
     public enum StateNumber {
         ONE(1), TWO(2), THREE(3), FOUR(4), FIVE(5);
@@ -203,14 +227,67 @@ public class StateProgressBar extends View {
 
     public StateProgressBar(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
+        initPaints(context, attrs);
     }
 
     public StateProgressBar(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init(context, attrs, defStyle);
+        this.defStyleAttr = defStyleAttr;
+        initPaints(context, attrs);
         initializePainters();
         updateCheckAllStatesValues(mEnableAllStatesCompleted);
 
+    }
+
+    private void initPaints(Context context, AttributeSet attrs) {
+
+        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.StateProgressBar, defStyleAttr, 0);
+
+        progressColor = ta.getColor(R.styleable.StateProgressBar_progressColor, Color.BLUE);
+        backgroundColor = ta.getColor(R.styleable.StateProgressBar_backgroundColor, Color.GRAY);
+        strokeWidth = ta.getFloat(R.styleable.StateProgressBar_strokeWidth, 5);
+        backgroundWidth = ta.getFloat(R.styleable.StateProgressBar_backgroundWidth, 5);
+        roundedCorners = ta.getBoolean(R.styleable.StateProgressBar_roundedCorners, false);
+        maxValue = ta.getFloat(R.styleable.StateProgressBar_maxValue, 100);
+        progressTextColor = ta.getColor(R.styleable.StateProgressBar_progressTextColor, Color.BLACK);
+        textSize = ta.getDimension(R.styleable.StateProgressBar_textSize, 18);
+        suffix = ta.getString(R.styleable.StateProgressBar_suffix);
+        prefix = ta.getString(R.styleable.StateProgressBar_prefix);
+        text = ta.getString(R.styleable.StateProgressBar_progressText);
+
+        progressBarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        progressBarPaint.setStyle(Paint.Style.FILL);
+        progressBarPaint.setColor(progressColor);
+        progressBarPaint.setStyle(Paint.Style.STROKE);
+        progressBarPaint.setStrokeWidth(strokeWidth * getResources().getDisplayMetrics().density);
+        if (roundedCorners) {
+            progressBarPaint.setStrokeCap(Paint.Cap.ROUND);
+        } else {
+            progressBarPaint.setStrokeCap(Paint.Cap.BUTT);
+        }
+        String pc = String.format("#%06X", (0xFFFFFF & progressColor));
+        progressBarPaint.setColor(Color.parseColor(pc));
+
+        bacgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bacgroundPaint.setStyle(Paint.Style.FILL);
+        bacgroundPaint.setColor(backgroundColor);
+        bacgroundPaint.setStyle(Paint.Style.STROKE);
+        bacgroundPaint.setStrokeWidth(backgroundWidth * getResources().getDisplayMetrics().density);
+        bacgroundPaint.setStrokeCap(Paint.Cap.SQUARE);
+        String bc = String.format("#%06X", (0xFFFFFF & backgroundColor));
+        bacgroundPaint.setColor(Color.parseColor(bc));
+
+        ta.recycle();
+
+        textPaint = new TextPaint();
+        textPaint.setColor(progressTextColor);
+        String c = String.format("#%06X", (0xFFFFFF & progressTextColor));
+        textPaint.setColor(Color.parseColor(c));
+        textPaint.setTextSize(textSize);
+        textPaint.setAntiAlias(true);
+
+        //paint.setAntiAlias(true);
     }
 
     private void init(Context context, AttributeSet attrs, int defStyle) {
@@ -282,8 +359,6 @@ public class StateProgressBar extends View {
 
     }
 
-    private Paint progressBarPaint;
-    private Paint bacgroundPaint;
 
     private void initializePainters() {
 
@@ -741,7 +816,11 @@ public class StateProgressBar extends View {
 
     private void drawCircles(Canvas canvas, Paint paint, int startIndex, int endIndex) {
         for (int i = startIndex; i < endIndex; i++) {
-            canvas.drawCircle(mCellWidth * (i + 1) - (mCellWidth / 2), mCellHeight / 2, mStateRadius, paint);
+//            canvas.drawCircle(mCellWidth * (i + 1) - (mCellWidth / 2), mCellHeight / 2, mStateRadius, bacgroundPaint);
+            mArcBounds1.set(0, 0, mStateRadius * 2, mStateRadius * 2);
+            mArcBounds1.offset(mCellWidth * (i + 1) - (mCellWidth / 2) - mStateRadius, 5);
+            canvas.drawArc(mArcBounds1, 0f, 360f, false, bacgroundPaint);
+            canvas.drawArc(mArcBounds1, 270f, drawUpto / getMaxValue() * 360, false, progressBarPaint);
         }
     }
 
@@ -851,6 +930,7 @@ public class StateProgressBar extends View {
 
         mCellWidth = getWidth() / mMaxStateNumber;
         mNextCellWidth = mCellWidth;
+        mRadius = Math.min(mCellWidth, getCellHeight()) / 2f;
     }
 
     @Override
@@ -858,6 +938,126 @@ public class StateProgressBar extends View {
         super.onDraw(canvas);
 
         drawState(canvas);
+//        float mouthInset = mRadius / 3;
+//        mArcBounds.set(mouthInset, mouthInset, mRadius * 2 - mouthInset, mRadius * 2 - mouthInset);
+////        canvas.drawArc(mArcBounds, 0f, 360f, false, bacgroundPaint);
+////        canvas.drawArc(mArcBounds, 270f, drawUpto / getMaxValue() * 360, false, progressBarPaint);
+//
+//        if (TextUtils.isEmpty(suffix)) {
+//            suffix = "";
+//        }
+//
+//        if (TextUtils.isEmpty(prefix)) {
+//            prefix = "";
+//        }
+//
+//        String drawnText = prefix + text + suffix;
+//
+//        if (!TextUtils.isEmpty(text)) {
+//            float textHeight = textPaint.descent() + textPaint.ascent();
+//            canvas.drawText(drawnText, (getWidth() - textPaint.measureText(drawnText)) / 2.0f, (getWidth() - textHeight) / 2.0f, textPaint);
+//        }
+    }
+
+    public void setProgress(float f) {
+        drawUpto = f;
+        invalidate();
+    }
+
+    public float getMaxValue() {
+        return maxValue;
+    }
+
+    public float getProgress() {
+        return drawUpto;
+    }
+
+    public float getProgressPercentage() {
+        return drawUpto / getMaxValue() * 100;
+    }
+
+    public void setProgressColor(int color) {
+        progressColor = color;
+        progressBarPaint.setColor(color);
+        invalidate();
+    }
+
+    public void setProgressColor(String color) {
+        progressBarPaint.setColor(Color.parseColor(color));
+        invalidate();
+    }
+
+
+    public void setBackgroundColor(String color) {
+        bacgroundPaint.setColor(Color.parseColor(color));
+        backgroundColor = Color.parseColor(color);
+        bacgroundPaint.setColor(Color.parseColor(color));
+        invalidate();
+    }
+
+    public void setMaxValue(float max) {
+        maxValue = max;
+        invalidate();
+    }
+
+    public void setStrokeWidth(float width) {
+        strokeWidth = width;
+        invalidate();
+    }
+
+    public float getStrokeWidth() {
+        return strokeWidth;
+    }
+
+    public void setBackgroundWidth(float width) {
+        backgroundWidth = width;
+        invalidate();
+    }
+
+    public float getBackgroundWidth() {
+        return backgroundWidth;
+    }
+
+    public void setText(String progressText) {
+        text = progressText;
+        invalidate();
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setTextColor(int color) {
+        progressTextColor = color;
+        textPaint.setColor(color);
+        invalidate();
+    }
+
+    public void setTextColor(String color) {
+        textPaint.setColor(Color.parseColor(color));
+        invalidate();
+    }
+
+    public int getTextColor() {
+        return progressTextColor;
+    }
+
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
+        invalidate();
+    }
+
+    public String getSuffix() {
+        return suffix;
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+        invalidate();
     }
 
     @Override
@@ -870,7 +1070,11 @@ public class StateProgressBar extends View {
         setMeasuredDimension(width, height);
 
         mCellHeight = getCellHeight();
-
+//        int w = MeasureSpec.getSize(widthMeasureSpec);
+//        int h = MeasureSpec.getSize(heightMeasureSpec);
+//
+//        int size = Math.min(w, h);
+//        setMeasuredDimension(size, size);
     }
 
 
@@ -926,7 +1130,7 @@ public class StateProgressBar extends View {
 
         setAnimatorStartEndCenterX();
 
-        drawCurrentStateJoiningLine(canvas);
+//        drawCurrentStateJoiningLine(canvas);
 
         drawBackgroundLines(canvas);
 
@@ -935,7 +1139,7 @@ public class StateProgressBar extends View {
 
         drawForegroundCircles(canvas);
 
-        drawForegroundLines(canvas);
+//        drawForegroundLines(canvas);
 
         drawStateNumberText(canvas, mMaxStateNumber);
 
@@ -976,26 +1180,40 @@ public class StateProgressBar extends View {
 
 
     private void drawLines(Canvas canvas, Paint paint, int startIndex, int endIndex) {
+        //mCellWidth * (i + 1) - (mCellWidth / 2), mCellHeight / 2
+//        for (int i = 0; i < 2; i++) {
+//            canvas.drawLine(mCellWidth * (startIndex + 1) - (mCellWidth / 2) + mStateRadius * 2,
+//                    mCellHeight / 2, mCellWidth * (startIndex + 2) - (mCellWidth / 2) - mStateRadius * 2, mCellHeight / 2, paint);
+        float gap = (getWidth() - mMaxStateNumber * mStateSize) / mMaxStateNumber;
+        for (int i = startIndex; i < endIndex; i++) {
+            canvas.drawLine(gap * (i - 1) + gap / 2 + i * mStateSize,
+                    mCellHeight / 2,
+                    gap * i + gap / 2 + i * mStateSize, mCellHeight / 2, paint);
 
-        float startCenterX;
-        float endCenterX;
-
-        float startX;
-        float stopX;
-
-
-        if (endIndex > startIndex) {
-
-            startCenterX = mCellWidth / 2 + mCellWidth * startIndex;
-
-            endCenterX = mCellWidth * endIndex - (mCellWidth / 2);
-
-            startX = startCenterX + (mStateRadius * 0.75f);
-            stopX = endCenterX - (mStateRadius * 0.75f);
-
-            canvas.drawLine(startX, mCellHeight / 2, stopX, mCellHeight / 2, paint);
-
+//            canvas.drawLine(gap + gap / 2 + 2 * mStateSize,
+//                    mCellHeight / 2,
+//                    gap * 2 + gap / 2 + 2 * mStateSize, mCellHeight / 2, paint);
         }
+//        }
+//        float startCenterX;
+//        float endCenterX;
+//
+//        float startX;
+//        float stopX;
+//
+//
+//        if (endIndex > startIndex) {
+//
+//            startCenterX = mCellWidth / 2 + mCellWidth * startIndex;
+//
+//            endCenterX = mCellWidth * endIndex - (mCellWidth / 2);
+//
+//            startX = startCenterX + (mStateRadius * 0.75f);
+//            stopX = endCenterX - (mStateRadius * 0.75f);
+//            //mCellWidth * (i + 1) - (mCellWidth / 2), mCellHeight
+//            canvas.drawLine(startX, mCellHeight / 2, stopX, mCellHeight / 2, paint);
+//
+//        }
 
     }
 
@@ -1083,8 +1301,10 @@ public class StateProgressBar extends View {
         if (!mStateDescriptionData.isEmpty()) {
 
             for (int i = 0; i < mStateDescriptionData.size(); i++) {
+                Log.e(TAG,"111111"+i);
                 if (i < mMaxStateNumber) {
                     innerPaintType = selectDescriptionPaint(mCurrentStateNumber, i);
+                    innerPaintType.setColor(Color.BLACK);
                     xPos = (int) (mNextCellWidth - (mCellWidth / 2));
 
 
@@ -1169,6 +1389,7 @@ public class StateProgressBar extends View {
         if (stateDescriptionDataSize < mMaxStateNumber) {
             for (int i = 0; i < mMaxStateNumber - stateDescriptionDataSize; i++) {
                 stateDescriptionData.add(stateDescriptionDataSize + i, EMPTY_SPACE_DESCRIPTOR);
+                Log.e(TAG,stateDescriptionDataSize + i+"");
             }
         }
     }
@@ -1209,8 +1430,8 @@ public class StateProgressBar extends View {
         boolean isChecked;
 
         for (int i = 0; i < noOfCircles; i++) {
-
             innerPaintType = selectPaintType(mCurrentStateNumber, i, mCheckStateCompleted);
+            innerPaintType.setColor(Color.BLACK);
 
             xPos = (int) (mCellWidth * (i + 1) - (mCellWidth / 2));
 
@@ -1298,6 +1519,18 @@ public class StateProgressBar extends View {
         }
     }
 
+    public void setProgressWithAnimation(float progress) {
+        ObjectAnimator objectAnimator = ObjectAnimator.ofFloat(this, "progress", progress);
+        objectAnimator.setDuration(2000);
+        objectAnimator.setInterpolator(new DecelerateInterpolator());
+        objectAnimator.start();
+        objectAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                super.onAnimationEnd(animation);
+            }
+        });
+    }
 
     private class Animator implements Runnable {
         private Scroller mScroller;

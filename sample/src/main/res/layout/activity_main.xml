@@ -4,10 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
 
     <!--<android.support.v7.widget.RecyclerView-->
@@ -15,29 +11,15 @@
     <!--android:layout_height="match_parent"-->
     <!--android:id="@+id/rv"-->
     <!--/>-->
-    <com.kofigyan.stateprogressbar.StateProgressBar
+    <com.kofigyan.stateprogressbar.StateProgressBar xmlns:cpb="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/sate_progressbar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:spb_animateToCurrentProgressState="true"
-        app:spb_checkStateCompleted="true"
-        app:spb_currentStateNumber="two"
-        app:spb_maxStateNumber="three"/>
+        app:spb_animateToCurrentProgressState="false"
+        app:spb_stateSize="60dp"
+        app:spb_currentStateNumber="one"
+        app:spb_maxStateNumber="three" />
 
-    <com.kofigyan.stateprogressbarsample.view.CircleProgressBar xmlns:cpb="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/progressBar"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        cpb:backgroundColor="#e7b330"
-        cpb:backgroundWidth="8"
-        cpb:maxValue="100"
-        cpb:prefix=""
-        cpb:progressColor="#e76130"
-        cpb:progressText="Loading..."
-        cpb:progressTextColor="#f9916b"
-        cpb:roundedCorners="true"
-        cpb:strokeWidth="14"
-        cpb:suffix="%"
-        cpb:textSize="18sp" />
 
     <Button
         android:layout_width="wrap_content"
